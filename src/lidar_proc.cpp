@@ -24,6 +24,7 @@ struct LASER_POINT_NEW
   float    v_angle;
   float    h_angle;
   int  laserid;                      ///< laser ring number
+  unsigned int point_time;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 }EIGEN_ALIGN16;
 
@@ -37,6 +38,7 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(LASER_POINT_NEW,// 注册点类型宏
                                   (float, h_angle, h_angle)
                                   (float, range, range)
                                   (int, laserid, laserid)
+                                  (unsigned int, point_time, point_time)
                                   )
 
 //std_msgs::Header _velodyne_header;
