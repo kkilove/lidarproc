@@ -42,14 +42,18 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(LASER_POINT_NEW,// 注册点类型宏
                                   )
 
 //std_msgs::Header _velodyne_header;
+//确定目标区域
+float x_roi_l= -0.1;float x_roi_r=0.1;
+float z_roi_d= -0.1;float z_roi_u=0.1;
+float y_roi=0.2;
 //精度
 float dis_accu = 0.0;
 int frame_accu = 0;
-#define H_accu  15.4
+float  H_accu  15.4
 #define PI  3.1415926
 //水平角分辨率
-int v_angle_roi=2; //水平角度统计范围
-float x_roi=tan(v_angle_roi*PI/180)*H_accu;
+float v_angle_roi=1.0; //水平角度统计范围
+float x_v_roi=tan(v_angle_roi*PI/180)*H_accu;
 float v_resulotion_accu = 0.0;
 int frame_v_resolution = 0;
 
@@ -63,7 +67,7 @@ void dis_accuracy(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4 
     x = in_cloud_ptr->points[i].x;
     y = in_cloud_ptr->points[i].y;
     z = in_cloud_ptr->points[i].z;
-    if(x<0.1 && x>-0.1 && z<0.1 && z>-0.1 && y>0.2)
+    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>y_roi)
     {
       dis = dis + y;
       flag++;
@@ -95,7 +99,7 @@ void vangle_resulution(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr)
     x = in_cloud_ptr->points[i].x;
     y = in_cloud_ptr->points[i].y;
     z = in_cloud_ptr->points[i].z;
-    if(x<x_roi&& x>-x_roi && z<0.1 && z>-0.1 && y>0.2)
+    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>y_roi)
     {
       id=in_cloud_ptr->points[i].laserid;
       break;
@@ -109,7 +113,7 @@ void vangle_resulution(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr)
       x = in_cloud_ptr->points[i].x;
       y = in_cloud_ptr->points[i].y;
       z = in_cloud_ptr->points[i].z;
-      if(x<x_roi&& x>-x_roi && z<0.1 && z>-0.1)
+      if(x<x_v_roi&& x>-x_v_roi && z<z_roi_u && z>z_roi_d)
       {
         flag++;
       }
