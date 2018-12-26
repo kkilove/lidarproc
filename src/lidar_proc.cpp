@@ -10,6 +10,8 @@
 #include <pcl/point_types.h>
 
 #include <string>
+#include <iostream>
+#include <fstream>
 
 
 using namespace ros;
@@ -42,14 +44,16 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(LASER_POINT_NEW,// 注册点类型宏
                                   )
 
 //std_msgs::Header _velodyne_header;
+ofstream outfile;
+
 //确定目标区域
 float x_roi_l= -0.1;float x_roi_r=0.1;
 float z_roi_d= -0.1;float z_roi_u=0.1;
-float y_roi=0.2;
+float y_roi=4;
 //精度
 float dis_accu = 0.0;
 int frame_accu = 0;
-float  H_accu =15.4;
+double  H_accu =5.55;
 #define PI  3.1415926
 //水平角分辨率
 float v_angle_roi=1.0; //水平角度统计范围
@@ -71,6 +75,7 @@ void dis_accuracy(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4 
     {
       dis = dis + y;
       flag++;
+      outfile<<"ID:"<<in_cloud_ptr->points[i].laserid<<"; R:"<<in_cloud_ptr->points[i].range<<"; y:"<<y<<"; bis:"<<H_accu-y<<endl;
     }
   }
   if(flag>=10)
@@ -145,10 +150,12 @@ void lidar_callback(const sensor_msgs::PointCloud2ConstPtr& in_sensor_cloud)
 
 int main(int argc, char **argv) 
 { 
+  outfile.open("data.txt");
   ros::Time::init();
   ros::init(argc, argv, "lidar_proc_node");
   ros::NodeHandle h;
   ros::NodeHandle private_nh("~");
+  private_nh.param("H_accu", H_accu, 5.55);
   ros::Subscriber subscriber = h.subscribe("/point_raw", 1, lidar_callback);
   //ROS_INFO("%f", x_roi);
   ros::spin();
