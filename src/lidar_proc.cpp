@@ -57,7 +57,7 @@ double  H_accu =5.55;
 #define PI  3.1415926
 //水平角分辨率
 float v_angle_roi=1.0; //水平角度统计范围
-float x_v_roi=tan(v_angle_roi*PI/180)*H_accu;
+float x_v_roi=tan(v_angle_roi*PI/180.0)*H_accu;
 float v_resulotion_accu = 0.0;
 int frame_v_resolution = 0;
 
@@ -71,16 +71,18 @@ void dis_accuracy(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4 
     x = in_cloud_ptr->points[i].x;
     y = in_cloud_ptr->points[i].y;
     z = in_cloud_ptr->points[i].z;
-    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>y_roi)
+    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>H_accu-1)
     {
       dis = dis + y;
       flag++;
-      outfile<<"ID:"<<in_cloud_ptr->points[i].laserid<<"; R:"<<in_cloud_ptr->points[i].range<<"; y:"<<y<<"; bis:"<<H_accu-y<<endl;
+   //  ROS_INFO("ID:%d,  y:%f", in_cloud_ptr->points[i].laserid,y);
+      //outfile<<"ID:"<<in_cloud_ptr->points[i].laserid<<"; R:"<<in_cloud_ptr->points[i].range<<"; y:"<<y<<"; bis:"<<H_accu-y<<endl;
     }
   }
   if(flag>=10)
   {
     dis = dis/flag;
+   // ROS_INFO("dis_avg:%f,  Flag:%d", dis,flag);
     dis = fabs(dis-H_accu);
     dis_accu = dis_accu + dis;
     // ROS_INFO("dis_accu:%f", dis);
@@ -118,18 +120,16 @@ void vangle_resulution(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr)
       x = in_cloud_ptr->points[i].x;
       y = in_cloud_ptr->points[i].y;
       z = in_cloud_ptr->points[i].z;
-      if(x<x_v_roi&& x>-x_v_roi && z<z_roi_u && z>z_roi_d)
+      if(x<x_v_roi&& x>-x_v_roi && z<z_roi_u && z>z_roi_d && y>H_accu-1)
       {
         flag++;
       }
     }
   }
-  if(flag>=10)
+  if(flag>2)
   {
     v_resulution = v_angle_roi*2/flag;
     v_resulotion_accu=v_resulotion_accu+v_resulution;
-    // ROS_INFO("v_resulotion_accu:%f", v_resulution);
-    // ROS_INFO("flag:%d", flag);
     frame_v_resolution++;
   }
   if(frame_v_resolution>10)
@@ -156,6 +156,8 @@ int main(int argc, char **argv)
   ros::NodeHandle h;
   ros::NodeHandle private_nh("~");
   private_nh.param("H_accu", H_accu, 5.55);
+  x_v_roi=tan(v_angle_roi*PI/180.0)*H_accu;
+  ROS_INFO("x_v_roi:%f,H_accu:%f", x_v_roi,H_accu);
   ros::Subscriber subscriber = h.subscribe("/point_raw", 1, lidar_callback);
   //ROS_INFO("%f", x_roi);
   ros::spin();
