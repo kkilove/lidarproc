@@ -49,7 +49,7 @@ float y_roi=0.2;
 //精度
 float dis_accu = 0.0;
 int frame_accu = 0;
-float  H_accu  15.4
+float  H_accu =15.4
 #define PI  3.1415926
 //水平角分辨率
 float v_angle_roi=1.0; //水平角度统计范围
