@@ -45,10 +45,10 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(LASER_POINT_NEW,// 注册点类型宏
 
 //std_msgs::Header _velodyne_header;
 ofstream outfile;
-
+ofstream outfile_dis_accu;
 //确定目标区域
 float x_roi_l= -0.1;float x_roi_r=0.1;
-float z_roi_d= -0.1;float z_roi_u=0.1;
+float z_roi_d= -0.3;float z_roi_u=0.1;
 float y_roi=4;
 //精度
 float dis_accu = 0.0;
@@ -71,19 +71,20 @@ void dis_accuracy(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4 
     x = in_cloud_ptr->points[i].x;
     y = in_cloud_ptr->points[i].y;
     z = in_cloud_ptr->points[i].z;
-    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>H_accu-1)
+    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>H_accu-2)
     {
       dis = dis + y;
       flag++;
-   //  ROS_INFO("ID:%d,  y:%f", in_cloud_ptr->points[i].laserid,y);
-      //outfile<<"ID:"<<in_cloud_ptr->points[i].laserid<<"; R:"<<in_cloud_ptr->points[i].range<<"; y:"<<y<<"; bis:"<<H_accu-y<<endl;
+      //  ROS_INFO("ID:%d,  y:%f", in_cloud_ptr->points[i].laserid,y);
+      outfile<<"ID:"<<in_cloud_ptr->points[i].laserid<<"; dis:"<<in_cloud_ptr->points[i].range<<"; y:"<<y<<"; bis:"<<H_accu-y<<"; Intensity:"<<in_cloud_ptr->points[i].intensity<<"; h_angle:"<<in_cloud_ptr->points[i].h_angle<<endl;
     }
   }
   if(flag>=10)
   {
     dis = dis/flag;
-   // ROS_INFO("dis_avg:%f,  Flag:%d", dis,flag);
+    // ROS_INFO("dis_avg:%f,  Flag:%d", dis,flag);
     dis = fabs(dis-H_accu);
+    outfile_dis_accu<<dis<<endl;
     dis_accu = dis_accu + dis;
     // ROS_INFO("dis_accu:%f", dis);
     frame_accu++;
@@ -151,6 +152,7 @@ void lidar_callback(const sensor_msgs::PointCloud2ConstPtr& in_sensor_cloud)
 int main(int argc, char **argv) 
 { 
   outfile.open("data.txt");
+  outfile_dis_accu.open("dis_accu.txt");
   ros::Time::init();
   ros::init(argc, argv, "lidar_proc_node");
   ros::NodeHandle h;
