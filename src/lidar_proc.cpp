@@ -50,8 +50,9 @@ ofstream outfile;
 ofstream outfile_dis_accu;
 //确定目标区域
 float x_roi_l= -0.1;float x_roi_r=0.1;
-float z_roi_d= -2.2;float z_roi_u=0.3;
-float y_roi=4;
+float z_roi_d= -0.9;// dianxing -1.75
+float z_roi_u=0.1;
+float y_roi=0.1;
 //精度
 float dis_accu = 0.0;
 int frame_accu = 0;
@@ -80,44 +81,88 @@ void dis_accuracy(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4 
 {
   float x, y,z;
   float dis = 0.0;
+  float dis2=0.0;
   float D_corr = 0.0;
   float dis_lidar = 0.0;
   int laser_number=0;
   int alpha=0;
   int flag = 0;
+  float t_cos_thita=0;
+  float t_sin_thita=0;
+  float t_t_thita=0;
+
   for (unsigned int i=0; i<in_cloud_ptr->points.size(); i++)
   {
     x = in_cloud_ptr->points[i].x;
     y = in_cloud_ptr->points[i].y;
     z = in_cloud_ptr->points[i].z;
-    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>0.3)
+    if(x<x_roi_r && x>x_roi_l && z<z_roi_u && z>z_roi_d && y>H_accu-0.5)
     {
-      dis = dis + y;
-      flag++;
       laser_number=  in_cloud_ptr->points[i].laserid;
+      //if (laser_number == 12)
+      // {
+      dis = dis + fabs(y-H_accu);
       dis_lidar=in_cloud_ptr->points[i].range;
+      dis2 = dis2 + fabs(dis_lidar-H_accu);
+      flag++;
+
+      if(dis_lidar<12.0)
+      {
+        t_t_thita=(float)thita[laser_number];
+        int t_thita=t_t_thita*(0.9998*dis_lidar-0.0023)/(dis_lidar-0.0824);
+
+        // ROS_INFO_STREAM("t_thita:" << t_thita);
+        if (t_thita<0)
+        {
+          t_cos_thita=cos_rot_table_[-t_thita];
+          t_sin_thita=-sin_rot_table_[-t_thita];
+        }
+        else
+        {
+          t_cos_thita=cos_rot_table_[t_thita];
+          t_sin_thita=sin_rot_table_[t_thita];
+        }
+
+      }
+      else
+      {
+        t_cos_thita=cos_thita_value[laser_number];
+        t_sin_thita=sin_thita_value[laser_number];
+      }
+
+
       alpha=in_cloud_ptr->points[i].h_angle*100;
-      D_corr=H_accu/cos_rot_table_[alpha]/cos_thita_value[laser_number]-dis_lidar;
+      D_corr=H_accu/cos_rot_table_[alpha]/t_cos_thita-dis_lidar;
       outfile<<"ID:"<<laser_number<<"; dis:"<<dis_lidar<<"; y:"<<y<<"; bis:"<<H_accu-y<<"; Intensity:"<<in_cloud_ptr->points[i].intensity<<"; h_angle:"<<alpha<<"; D_corr:"<<D_corr<<endl;
+      //  }
     }
   }
-  if(flag>=10)
+  if(flag>=200)
   {
     dis = dis/flag;
-    // ROS_INFO("dis_avg:%f,  Flag:%d", dis,flag);
-    dis = fabs(dis-H_accu);
-    outfile_dis_accu<<dis<<endl;
-    dis_accu = dis_accu + dis;
-    // ROS_INFO("dis_accu:%f", dis);
-    frame_accu++;
+    dis2 = dis2/flag;
+    ROS_INFO("dis1_accu:%f", dis);
+    ROS_INFO("dis2_accu:%f", dis2);
+    flag=0;
   }
-  if(frame_accu>10)
-  {
-    dis_accu = dis_accu / frame_accu;
-    ROS_INFO("dis_accu:%f", dis_accu);
-    frame_accu = 0;
-  }
+  //  if(flag>=10)
+  //  {
+  //    dis = dis/flag;
+  //    // ROS_INFO("dis_avg:%f,  Flag:%d", dis,flag);
+  //    dis = fabs(dis-H_accu);
+  //    outfile_dis_accu<<dis<<endl;
+  //    dis_accu = dis_accu + dis;
+  //    // ROS_INFO("dis_accu:%f", dis);
+  //    frame_accu++;
+  //  }
+  //  if(frame_accu>10)
+  //  {
+  //    dis_accu = dis_accu / frame_accu;
+  //    ROS_INFO("dis_accu:%f", dis_accu);
+  //    frame_accu = 0;
+  //  }
 }
+
 void vangle_resulution(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr) //4  //水平角分辨率
 {
   float x, y,z;
@@ -143,7 +188,7 @@ void vangle_resulution(const pcl::PointCloud<LASER_POINT_NEW>::Ptr in_cloud_ptr)
       x = in_cloud_ptr->points[i].x;
       y = in_cloud_ptr->points[i].y;
       z = in_cloud_ptr->points[i].z;
-      if(x<x_v_roi&& x>-x_v_roi && z<z_roi_u && z>z_roi_d && y>H_accu-1)
+      if(x<x_v_roi&& x>-x_v_roi)
       {
         flag++;
       }
@@ -173,14 +218,19 @@ void lidar_callback(const sensor_msgs::PointCloud2ConstPtr& in_sensor_cloud)
 
 int main(int argc, char **argv) 
 { 
-  outfile.open("data.txt");
-  outfile_dis_accu.open("dis_accu.txt");
-  InitTables_chaowu();
   ros::Time::init();
   ros::init(argc, argv, "lidar_proc_node");
   ros::NodeHandle h;
   ros::NodeHandle private_nh("~");
   private_nh.param("H_accu", H_accu, 5.55);
+
+  char* filename = new char[32];
+  sprintf(filename, "%2f.txt", H_accu);
+
+  outfile.open(filename);
+  outfile_dis_accu.open("dis_accu.txt");
+  InitTables_chaowu();
+
   x_v_roi=tan(v_angle_roi*PI/180.0)*H_accu;
   ROS_INFO("x_v_roi:%f,H_accu:%f", x_v_roi,H_accu);
   ros::Subscriber subscriber = h.subscribe("/point_raw", 1, lidar_callback);
@@ -239,7 +289,8 @@ void InitTables_chaowu()
     thita[i+56]=start+i*79;
   }
 
-
+  for (int i=0;i<64;i++)
+    thita[i]=thita[i]*0.97;
 
   for (int i=0;i<Num_Of_Detector;++i)
   {
